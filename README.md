@@ -51,12 +51,40 @@ For command-line builds, use the repository scripts:
 ./scripts/build.sh
 ./scripts/run.sh
 ./scripts/test.sh
+./scripts/lint.sh
+./scripts/format.sh --check
 ./scripts/validate.sh
 ```
 
 The scripts use a local Apple Development certificate and detect its development team.
 Set `SPOTMENU_SIGN_IDENTITY` and `SPOTMENU_DEVELOPMENT_TEAM` to select another signing identity.
-Set `SPOTMENU_BUILD_DIR` to change the build directory. The default is `spotmenu-build` in the temporary directory.
+The built app is at `build/Build/Products/Debug/SpotMenu.app` inside this checkout.
+Set `SPOTMENU_BUILD_DIR` to use a different build directory.
+
+### Continuous integration
+
+The CI branch adds macOS build and unit-test checks, SwiftLint, Swift formatting, and shell syntax checks.
+Builds use the runner's selected Xcode and ad-hoc signing on GitHub's `macos-26` runners, without a developer certificate or signing secrets.
+The live Spotifast test remains an explicit local check because CI has no signed-in music player.
+
+SwiftLint checks correctness rules in `.swiftlint.yml`. Swift's formatter owns layout, with four-space indentation and a 120-column limit.
+Run `./scripts/format.sh --write` to apply formatting, or `./scripts/format.sh --check` to check without changes.
+CI installs the pinned SwiftLint and actionlint versions through mise. Swift's formatter is included in Xcode.
+Run `./scripts/test-ci.sh` to test with CI signing and locked Swift dependencies.
+Use `./scripts/test-results.sh path/to/results.xcresult` to read an Xcode test summary.
+
+`mise.toml` pins Node, actionlint, SwiftLint and OSV-Scanner for local and CI use.
+Run `mise install node actionlint swiftlint osv-scanner` to install the tools. The mise shims select their pinned versions.
+Run `./scripts/website.sh install` for a clean npm install, then `./scripts/website.sh build`.
+Use `./scripts/website.sh preview` to preview the build at `http://localhost:4321/SpotMenu/`.
+CI and Pages deployment use the same Node pin. Pull requests also build the website.
+
+The dependency workflow runs on pushes, pull requests, manual dispatch, and daily at 00:00 UTC.
+OSV-Scanner 2.7.0 checks SwiftPM and website/npm dependencies in separate jobs, including transitive dependencies.
+Each job fails on known vulnerabilities and uploads its own JSON report, even when the other job fails.
+The daily schedule starts after the workflow reaches the default branch.
+For the same scan locally, run `./scripts/audit.sh` after installing the tools with mise.
+Use `./scripts/audit.sh swift` or `./scripts/audit.sh website` to scan one ecosystem.
 
 ### Spotifast
 
